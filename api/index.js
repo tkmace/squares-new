@@ -2,8 +2,24 @@ const { Redis } = require('@upstash/redis');
 
 const GAME_KEY = 'superbowl-game-state';
 
-// Use REDIS_URL from environment (that's what Vercel provides)
-const redis = Redis.fromEnv();
+// Parse the REDIS_URL manually
+// Format: redis://default:password@host:port
+function parseRedisUrl(url) {
+    const match = url.match(/redis:\/\/([^:]+):([^@]+)@([^:]+):(\d+)/);
+    if (match) {
+        return {
+            url: `https://${match[3]}`,
+            token: match[2]
+        };
+    }
+    throw new Error('Invalid REDIS_URL format');
+}
+
+const redisConfig = parseRedisUrl(process.env.REDIS_URL);
+const redis = new Redis({
+    url: redisConfig.url,
+    token: redisConfig.token
+});
 
 async function getGameState() {
     try {
