@@ -2,24 +2,21 @@ const { Redis } = require('@upstash/redis');
 
 const GAME_KEY = 'superbowl-game-state';
 
-// Parse the REDIS_URL manually
-// Format: redis://default:password@host:port
-function parseRedisUrl(url) {
-    const match = url.match(/redis:\/\/([^:]+):([^@]+)@([^:]+):(\d+)/);
-    if (match) {
-        return {
-            url: `https://${match[3]}`,
-            token: match[2]
-        };
-    }
-    throw new Error('Invalid REDIS_URL format');
+// Try multiple possible environment variable names
+let redis;
+if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    redis = new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN
+    });
+} else if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+    redis = new Redis({
+        url: process.env.KV_REST_API_URL,
+        token: process.env.KV_REST_API_TOKEN
+    });
+} else {
+    throw new Error('No Upstash REST API credentials found. Need UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN');
 }
-
-const redisConfig = parseRedisUrl(process.env.REDIS_URL);
-const redis = new Redis({
-    url: redisConfig.url,
-    token: redisConfig.token
-});
 
 async function getGameState() {
     try {
